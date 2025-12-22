@@ -42,8 +42,6 @@ def train():
     y_test = test['Churn']
 
     # 3. Training & Logging
-    mlflow.set_experiment("Telco_CI_Docker_Build")
-    
     with mlflow.start_run() as run:
         model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, random_state=42)
         model.fit(X_train, y_train)
