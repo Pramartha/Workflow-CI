@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
     paths:
-      - "Workflow-CI/**"
+      - "MLProject/**"
 
 jobs:
   build-and-deploy:
@@ -28,12 +28,12 @@ jobs:
       # 4. JALANKAN MLFLOW PROJECT
       - name: Run MLflow Project
         run: |
-          mlflow run Workflow-CI/MLProject --env-manager=local
+          mlflow run MLProject --env-manager=local
 
       # 5. AMBIL RUN ID
       - name: Get Run ID
         run: |
-          RUN_ID=$(cat Workflow-CI/MLProject/run_id.txt)
+          RUN_ID=$(cat MLProject/run_id.txt)
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
           echo "Detected Run ID: $RUN_ID"
 
@@ -49,7 +49,7 @@ jobs:
         env:
           MLFLOW_TRACKING_URI: "https://dagshub.com/Pramartha/Eksperimen_SML_Kadek-Pramartha-Mahottama.mlflow"
           MLFLOW_TRACKING_USERNAME: "Pramartha"
-          MLFLOW_TRACKING_PASSWORD: "023e010fe8eb3de70c9874a84943112c9a8e05fe"
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
           DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/telco-churn-model:latest"
 
