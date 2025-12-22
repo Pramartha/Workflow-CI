@@ -63,7 +63,7 @@ def train():
         # 4. SIMPAN RUN ID
         run_id = run.info.run_id
         print(f"Run ID disimpan: {run_id}")
-        # Simpan file txt di folder yg sama
+        # Simpan file txt di folder yg samaa
         with open("run_id.txt", "w") as f:
             f.write(run_id)
 
