@@ -1,0 +1,1 @@
+https://hub.docker.com/repository/docker/pramarthaa/telco-churn-model/general
