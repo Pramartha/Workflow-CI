@@ -27,6 +27,10 @@ jobs:
 
       # 4. JALANKAN MLFLOW PROJECT
       - name: Run MLflow Project
+        env:
+          MLFLOW_TRACKING_URI: "https://dagshub.com/Pramartha/Eksperimen_SML_Kadek-Pramartha-Mahottama.mlflow"
+          MLFLOW_TRACKING_USERNAME: "Pramartha"
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
           mlflow run MLProject --env-manager=local
 
