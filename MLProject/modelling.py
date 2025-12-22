@@ -64,6 +64,6 @@ def train():
         # Simpan file txt di folder yg sama
         with open("run_id.txt", "w") as f:
             f.write(run_id)
-
+            
 if __name__ == "__main__":
     train()
