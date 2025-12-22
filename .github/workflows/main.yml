@@ -1,0 +1,61 @@
+name: CI/CD Pipeline & Docker Build
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "Workflow-CI/**"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Ambil Kode
+      - uses: actions/checkout@v4
+
+      # 2. Setup Python 3.12
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      # 3. Install Library
+      - name: Install dependencies
+        run: |
+          pip install mlflow==2.19.0 dagshub pandas numpy scikit-learn matplotlib seaborn
+
+      # 4. JALANKAN MLFLOW PROJECT
+      - name: Run MLflow Project
+        run: |
+          mlflow run Workflow-CI/MLProject --env-manager=local
+
+      # 5. AMBIL RUN ID
+      - name: Get Run ID
+        run: |
+          RUN_ID=$(cat Workflow-CI/MLProject/run_id.txt)
+          echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+          echo "Detected Run ID: $RUN_ID"
+
+      # 6. Login Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # 7. BUILD & PUSH DOCKER IMAGE
+      - name: Build and Push Docker Image
+        env:
+          MLFLOW_TRACKING_URI: "https://dagshub.com/Pramartha/Eksperimen_SML_Kadek-Pramartha-Mahottama.mlflow"
+          MLFLOW_TRACKING_USERNAME: "Pramartha"
+          MLFLOW_TRACKING_PASSWORD: "023e010fe8eb3de70c9874a84943112c9a8e05fe"
+        run: |
+          DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/telco-churn-model:latest"
+
+          mlflow models build-docker \
+            -m "runs:/${{ env.RUN_ID }}/model" \
+            -n "$DOCKER_IMAGE" \
+            --enable-mlserver
+            
+          docker push "$DOCKER_IMAGE"
