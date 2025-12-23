@@ -7,15 +7,6 @@ import mlflow.sklearn
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
-# Konfigurasi DagsHub
-DAGSHUB_URI = "https://dagshub.com/Pramartha/Eksperimen_SML_Kadek-Pramartha-Mahottama.mlflow" 
-DAGSHUB_USER = "Pramartha" 
-DAGSHUB_TOKEN = "023e010fe8eb3de70c9874a84943112c9a8e05fe" 
-
-os.environ["MLFLOW_TRACKING_USERNAME"] = DAGSHUB_USER
-os.environ["MLFLOW_TRACKING_PASSWORD"] = DAGSHUB_TOKEN
-mlflow.set_tracking_uri(DAGSHUB_URI)
-
 def train():
     # 1. Menangkap Parameter dari MLProject
     n_estimators = int(sys.argv[1]) if len(sys.argv) > 1 else 100
