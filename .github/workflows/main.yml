@@ -1,80 +1,60 @@
-name: CI/CD Pipeline & Docker Build
+name: MLflow CI Training & Docker Build
 
-on:
-  push:
-    branches: ["main"]
-    paths:
-      - "MLProject/**"
+on: [push]
 
 jobs:
-  build-and-deploy:
+  train-and-build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Ambil Kode
-      - uses: actions/checkout@v4
+      # Ambil kode dari repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # 2. Setup Python 3.12
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v4
+      # Siapkan Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      # 3. Install Library
-      - name: Install dependencies
+      # Install Dependencies
+      - name: Install Dependencies
         run: |
-          pip install mlflow==2.19.0 dagshub pandas numpy scikit-learn matplotlib seaborn
+          python -m pip install --upgrade pip
+          pip install mlflow==2.19.0 pandas scikit-learn numpy matplotlib seaborn dagshub
 
-      # 4. JALANKAN MLFLOW PROJECT
+      # Jalankan MLflow Project
       - name: Run MLflow Project
-        env:
-          MLFLOW_TRACKING_URI: "https://dagshub.com/Pramartha/Eksperimen_SML_Kadek-Pramartha-Mahottama.mlflow"
-          MLFLOW_TRACKING_USERNAME: "Pramartha"
-          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          mlflow run MLProject --env-manager=local --experiment-name Telco_CI_Docker_Build
+          cd MLProject
+          mlflow run . --env-manager=local
 
-      # 5. AMBIL RUN ID
-      - name: Get Run ID
-        run: |
-          RUN_ID=$(cat MLProject/run_id.txt)
-          echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
-          echo "Detected Run ID: $RUN_ID"
-
-      # 6. DOWNLOAD MODEL ARTIFACT
-      - name: Download Model for Artifact
-        env:
-          MLFLOW_TRACKING_URI: "https://dagshub.com/Pramartha/Eksperimen_SML_Kadek-Pramartha-Mahottama.mlflow"
-          MLFLOW_TRACKING_USERNAME: "Pramartha"
-          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
-        run: |
-          # Download folder 'model' dari run tersebut ke folder lokal 'downloaded_model'
-          mlflow artifacts download --run-id ${{ env.RUN_ID }} --artifact-path model --dst-path downloaded_model
-
-      # 7. UPLOAD MODEL ARTIFACT KE GITHUB
-      - name: Upload Model Artifact to GitHub
+      # Upload Artefak MLflow ke GitHub Actions
+      - name: Upload MLflow Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: model-artifact-${{ env.RUN_ID }}
-          path: downloaded_model
+          name: mlflow-runs
+          path: MLProject/mlruns
 
-      # 8. Login Docker Hub
+      # Login ke Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # 9. BUILD & PUSH DOCKER IMAGE
-      - name: Build and Push Docker Image
-        env:
-          MLFLOW_TRACKING_URI: "https://dagshub.com/Pramartha/Eksperimen_SML_Kadek-Pramartha-Mahottama.mlflow"
-          MLFLOW_TRACKING_USERNAME: "Pramartha"
-          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+      # Build Docker Image dari Model MLflow
+      - name: Build Docker Image with MLflow
         run: |
-          mlflow models build-docker \
-            -m "runs:/${{ env.RUN_ID }}/model" \
-            -n "${{ secrets.DOCKER_USERNAME }}/telco-churn-model:latest" \
-            --enable-mlserver
+          cd MLProject
+          RUN_ID=$(cat run_id.txt)
+          echo "Building Docker image for Run ID: $RUN_ID"
 
-          docker push "${{ secrets.DOCKER_USERNAME }}/telco-churn-model:latest"
+          mlflow models build-docker \
+            -m runs:/$RUN_ID/model \
+            -n ${{ secrets.DOCKER_USERNAME }}/telco-churn-mlflow:latest
+
+      # Push Image ke Docker Hub
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/telco-churn-mlflow:latest

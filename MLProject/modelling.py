@@ -1,60 +1,43 @@
-import pandas as pd
-import numpy as np
-import os
-import sys
 import mlflow
 import mlflow.sklearn
+import os
+import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, f1_score
 
-def train():
-    # 1. Menangkap Parameter dari MLProject
-    n_estimators = int(sys.argv[1]) if len(sys.argv) > 1 else 100
-    max_depth = int(sys.argv[2]) if len(sys.argv) > 2 else 10
-    
-    print(f"[INFO] Training dimulai. Params: n_estimators={n_estimators}, max_depth={max_depth}")
+# Setup Path
+base_dir = os.path.dirname(os.path.abspath(__file__))
+train_path = os.path.join(base_dir, "telco_customer_churn_preprocessing", "train_clean.csv")
+test_path = os.path.join(base_dir, "telco_customer_churn_preprocessing", "test_clean.csv")
 
-    # 2. Load Data
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(base_dir, 'telco_customer_churn_preprocessing')
-    
-    train_path = os.path.join(data_dir, "train_clean.csv")
-    test_path = os.path.join(data_dir, "test_clean.csv")
+# Load Data
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
 
-    if not os.path.exists(train_path):
-        raise FileNotFoundError(f"Data tidak ditemukan di: {train_path}")
-    
-    train = pd.read_csv(train_path)
-    test = pd.read_csv(test_path)
-    
-    X_train = train.drop(columns=['Churn'])
-    y_train = train['Churn']
-    X_test = test.drop(columns=['Churn'])
-    y_test = test['Churn']
+# Pisahkan Fitur (X) dan Target (y)
+X_train = train_df.drop(columns=["Churn"])
+y_train = train_df["Churn"]
 
-    # 3. Training & Logging
-    with mlflow.start_run() as run:
-        model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, random_state=42)
-        model.fit(X_train, y_train)
-        
-        preds = model.predict(X_test)
-        acc = accuracy_score(y_test, preds)
-        print(f"Accuracy: {acc}")
-        
-        # Log Metrics & Params
-        mlflow.log_param("n_estimators", n_estimators)
-        mlflow.log_param("max_depth", max_depth)
-        mlflow.log_metric("accuracy", acc)
-        
-        # Log Model
-        mlflow.sklearn.log_model(model, "model")
-        
-        # 4. SIMPAN RUN ID
-        run_id = run.info.run_id
-        print(f"Run ID disimpan: {run_id}")
-        # Simpan file txt di folder yg sama
-        with open("run_id.txt", "w") as f:
-            f.write(run_id)
-            
-if __name__ == "__main__":
-    train()
+X_test = test_df.drop(columns=["Churn"])
+y_test = test_df["Churn"]
+
+# Training dengan Autolog
+with mlflow.start_run() as run:
+    
+    with open("run_id.txt", "w") as f:
+        f.write(run.info.run_id)
+
+    # Autolog
+    mlflow.sklearn.autolog()
+
+    # Training Model
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+
+    # Evaluasi
+    y_pred = model.predict(X_test)
+    acc = accuracy_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+
+    print(f"Accuracy: {acc}")
+    print(f"F1-score: {f1}")
